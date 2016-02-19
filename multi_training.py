@@ -14,10 +14,12 @@ def loadPieces(dirpath):
     pieces = {}
 
     for fname in os.listdir(dirpath):
+        printname = fname
         if fname[-4:] not in ('.mid','.MID'):
             continue
 
         name = fname[:-4]
+        print(printname)
 
         outMatrix = midiToNoteStateMatrix(os.path.join(dirpath, fname))
         if len(outMatrix) < batch_len:

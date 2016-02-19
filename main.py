@@ -1,4 +1,5 @@
-import cPickle as pickle
+# import cPickle as pickle
+from six.moves import cPickle as pickle
 import gzip
 import numpy
 from midi_to_statematrix import *
