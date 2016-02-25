@@ -7,15 +7,16 @@ def midiToNoteStateMatrix(midifile):
 
     pattern = midi.read_midifile(midifile)
 
+    # track[0] is the midi.TrackNameEvent which has tick info, there can be 8 tracks
     timeleft = [track[0].tick for track in pattern]
 
     posns = [0 for track in pattern]
 
     statematrix = []
-    span = upperBound-lowerBound
+    span = upperBound - lowerBound   #range of midi pitches (restrict range)
     time = 0
 
-    state = [[0,0] for x in range(span)]
+    state = [[0,0] for x in range(span)] # state == pairs of tuples len(range of midi pitches) long, i.e. 78 pitches!
     statematrix.append(state)
     while True:
         if time % (pattern.resolution / 4) == (pattern.resolution / 8):
@@ -24,25 +25,25 @@ def midiToNoteStateMatrix(midifile):
             state = [[oldstate[x][0],0] for x in range(span)]
             statematrix.append(state)
 
-        for i in range(len(timeleft)):
+        for i in range(len(timeleft)):  # for each of the 8 tracks (len(timeleft)) #i == index of 8 tracks
             while timeleft[i] == 0:
                 track = pattern[i]
-                pos = posns[i]
+                pos = posns[i]  #pos is index on each tracks events:
 
                 evt = track[pos]
                 if isinstance(evt, midi.NoteEvent):
                     if (evt.pitch < lowerBound) or (evt.pitch >= upperBound):
+                        print "Note {} at time {} out of bounds (ignoring)".format(evt.pitch, time)
                         pass
-                        # print "Note {} at time {} out of bounds (ignoring)".format(evt.pitch, time)
                     else:
                         if isinstance(evt, midi.NoteOffEvent) or evt.velocity == 0:
-                            state[evt.pitch-lowerBound] = [0, 0]
+                            state[evt.pitch - lowerBound] = [0, 0]
                         else:
-                            state[evt.pitch-lowerBound] = [1, 1]
+                            state[evt.pitch - lowerBound] = [1, 1]
                 elif isinstance(evt, midi.TimeSignatureEvent):
                     if evt.numerator not in (2, 4):
                         # We don't want to worry about non-4 time signatures. Bail early!
-                        # print "Found time signature event {}. Bailing!".format(evt)
+                        print "Found time signature event {}. Bailing!".format(evt)
                         return statematrix
 
                 try:
@@ -67,7 +68,7 @@ def noteStateMatrixToMidi(statematrix, name="example"):
     track = midi.Track()
     pattern.append(track)
     
-    span = upperBound-lowerBound
+    span = upperBound - lowerBound  #range of midi pitches (restrict range)
     tickscale = 55
     
     lastcmdtime = 0
