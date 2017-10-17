@@ -1,25 +1,39 @@
-import midi, numpy
+import midi
+import numpy
 
 lowerBound = 24
 upperBound = 102
 
+def midi2note(midi):
+    ''' convert midi note number to note name, e.g. [0, 127] -> [C-1, G9]'''
+    if type(midi) != int:
+        raise TypeError, "an integer is required, got %s" % midi
+    if not (-1 < midi < 128):
+        raise ValueError, "an integer between 0 and 127 is excepted, got %d" % midi
+    midi = int(midi)
+    _valid_notenames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    return _valid_notenames[midi % 12] + str( midi / 12 - 1)
+
+
 def midiToNoteStateMatrix(midifile):
 
-    pattern = midi.read_midifile(midifile)
+    inputMidiFile = midi.read_midifile(midifile)
 
     # track[0] is the midi.TrackNameEvent which has tick info, there can be 8 tracks
-    timeleft = [track[0].tick for track in pattern]
+    timeleft = [track[0].tick for track in inputMidiFile]
+    print("# tracks: " + str(len(timeleft)))
+    noteCountHistogram = numpy.zeros(upperBound)
 
-    posns = [0 for track in pattern]
+    posns = [0 for track in inputMidiFile]
 
     statematrix = []
     span = upperBound - lowerBound   #range of midi pitches (restrict range)
     time = 0
 
-    state = [[0,0] for x in range(span)] # state == pairs of tuples len(range of midi pitches) long, i.e. 78 pitches!
+    state = [[0, 0] for x in range(span)] # state == pairs of tuples len(range of midi pitches) long, i.e. 78 pitches!
     statematrix.append(state)
     while True:
-        if time % (pattern.resolution / 4) == (pattern.resolution / 8):
+        if time % (inputMidiFile.resolution / 4) == (inputMidiFile.resolution / 8):
             # Crossed a note boundary. Create a new state, defaulting to holding notes
             oldstate = state
             state = [[oldstate[x][0],0] for x in range(span)]
@@ -27,7 +41,7 @@ def midiToNoteStateMatrix(midifile):
 
         for i in range(len(timeleft)):  # for each of the 8 tracks (len(timeleft)) #i == index of 8 tracks
             while timeleft[i] == 0:
-                track = pattern[i]
+                track = inputMidiFile[i]
                 pos = posns[i]  #pos is index on each tracks events:
 
                 evt = track[pos]
@@ -36,18 +50,26 @@ def midiToNoteStateMatrix(midifile):
                         print "Note {} at time {} out of bounds (ignoring)".format(evt.pitch, time)
                         pass
                     else:
+                        # print(midi2note(evt.pitch))
                         if isinstance(evt, midi.NoteOffEvent) or evt.velocity == 0:
                             state[evt.pitch - lowerBound] = [0, 0]
                         else:
+                            noteCountHistogram[evt.pitch] += 1
                             state[evt.pitch - lowerBound] = [1, 1]
                 elif isinstance(evt, midi.TimeSignatureEvent):
                     if evt.numerator not in (2, 4):
                         # We don't want to worry about non-4 time signatures. Bail early!
                         print "Found time signature event {}. Bailing!".format(evt)
+                        print (noteCountHistogram, len(noteCountHistogram))
                         return statematrix
+                    else:
+                        print("Time Signature: " + str(evt.numerator) + " ")
 
                 try:
+                    # print("[IOHAVOC] ingesting track # " + str(i))
+                    # print("posns: " + str(posns))
                     timeleft[i] = track[pos + 1].tick
+                    # print("timeleft[i] " + str(timeleft[i]))
                     posns[i] += 1
                 except IndexError:
                     timeleft[i] = None
@@ -60,7 +82,12 @@ def midiToNoteStateMatrix(midifile):
 
         time += 1
 
+    print("time ticks/PPQ: " + str(time) + "  i.e. beats: " + str(time/480) + "  i.e 4/4 measures: " + str(time/480/4))
+    # print(noteCountHistogram)
+    print("Statematrix shape, length: " + str(statematrix.__len__()) + " each with " + str(statematrix[0].__len__()) + " notes")
     return statematrix
+
+
 
 def noteStateMatrixToMidi(statematrix, name="example"):
     statematrix = numpy.asarray(statematrix)
@@ -70,7 +97,7 @@ def noteStateMatrixToMidi(statematrix, name="example"):
     
     span = upperBound - lowerBound  #range of midi pitches (restrict range)
     tickscale = 55
-    
+
     lastcmdtime = 0
     prevstate = [[0,0] for x in range(span)]
     for time, state in enumerate(statematrix + [prevstate[:]]):  

@@ -1,13 +1,15 @@
 # import cPickle as pickle
 from six.moves import cPickle as pickle
 import gzip
-import numpy
+import numpy as np
 from midi_to_statematrix import *
 
 import multi_training
 import model
 
 
+# generate a piece and also prevent long empty gaps by increasing note probabilities
+# if the network stops playing for too long.
 def gen_adaptive(m, pcs, times, keep_thoughts=False, name="final"):
     xIpt, xOpt = map(lambda x: numpy.array(x, dtype='int8'), multi_training.getPieceSegment(pcs))
     all_outputs = [xOpt[0]]
@@ -42,7 +44,12 @@ def fetch_train_thoughts(m, pcs, batches, name="trainthoughts"):
 
 
 if __name__ == '__main__':
-    pcs = multi_training.loadPieces("music")
-    m = model.Model([300, 300], [100, 50], dropout=0.5)
-    multi_training.trainPiece(m, pcs, 10000)
-    pickle.dump(m.learned_config, open("output/final_learned_config.p", "wb"))
+
+    music_pieces = multi_training.loadPieces("music")
+    print("pieces shape: " + str(np.array(music_pieces).shape))
+
+    model = model.Model([300, 300], [100, 50], dropout=0.5)
+    multi_training.trainPiece(model, music_pieces, 10000)
+
+    # save
+    pickle.dump(model.learned_config, open("output/final_learned_config.p", "wb"))
