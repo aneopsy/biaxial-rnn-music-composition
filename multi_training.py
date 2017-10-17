@@ -10,6 +10,7 @@ batch_len = 16*8 # length of each sequence
 division_len = 16 # interval between possible start locations
 
 def loadPieces(dirpath):
+    print("getPieceSegment")
 
     pieces = {}
 
@@ -31,6 +32,7 @@ def loadPieces(dirpath):
     return pieces
 
 def getPieceSegment(pieces):
+    print("getPieceSegment")
     piece_output = random.choice(pieces.values())
     start = random.randrange(0,len(piece_output)-batch_len,division_len)
     print "Range is {} {} {} -> {}".format(0,len(piece_output)-batch_len,division_len, start)
@@ -41,10 +43,13 @@ def getPieceSegment(pieces):
     return seg_in, seg_out
 
 def getPieceBatch(pieces):
+    print "getPieceBatch"
     i,o = zip(*[getPieceSegment(pieces) for _ in range(batch_width)])
     return numpy.array(i), numpy.array(o)
 
 def trainPiece(model,pieces,epochs,start=0):
+    print "trainPiece"
+
     stopflag = [False]
     def signal_handler(signame, sf):
         stopflag[0] = True

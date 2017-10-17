@@ -332,9 +332,9 @@ class Model(object):
 
     def setup_slow_walk(self):
 
-        self.walk_input = theano.shared(np.ones((2,2), dtype='int8'))
-        self.walk_time = theano.shared(np.array(0, dtype='int64'))
-        self.walk_hiddens = [theano.shared(np.ones((2,2), dtype=theano.config.floatX)) for layer in self.time_model.layers if has_hidden(layer)]
+        self.walk_input = T._shared(np.ones((2,2), dtype='int8'))
+        self.walk_time = T._shared(np.array(0, dtype='int64'))
+        self.walk_hiddens = [T._shared(np.ones((2,2), dtype=theano.config.floatX)) for layer in self.time_model.layers if has_hidden(layer)]
         
         # correct for dropout
         if self.dropout > 0:
