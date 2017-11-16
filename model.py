@@ -84,7 +84,8 @@ class Model(object):
 
         # From our architecture definition, size of the notewise input
         self.t_input_size = 80
-        
+        print("t_input_size:" + str(self.t_input_size))
+
         # time network maps from notewise input size to various hidden sizes
         self.time_model = StackedCells( self.t_input_size, celltype=LSTM, layers = t_layer_sizes)
         self.time_model.layers.append(PassthroughLayer())
@@ -92,6 +93,7 @@ class Model(object):
         # pitch network takes last layer of time model and state of last note, moving upward
         # and eventually ends with a two-element sigmoid layer
         p_input_size = t_layer_sizes[-1] + 2
+        print("p_input_size:" + str(p_input_size))
         self.pitch_model = StackedCells( p_input_size, celltype=LSTM, layers = p_layer_sizes)
         self.pitch_model.layers.append(Layer(p_layer_sizes[-1], 2, activation = T.nnet.sigmoid))
         
@@ -335,9 +337,9 @@ class Model(object):
 
     def setup_slow_walk(self):
 
-        self.walk_input = theano.shared(np.ones((2,2), dtype='int8'))
-        self.walk_time = theano.shared(np.array(0, dtype='int64'))
-        self.walk_hiddens = [theano.shared(np.ones((2,2), dtype=theano.config.floatX)) for layer in self.time_model.layers if has_hidden(layer)]
+        self.walk_input = T._shared(np.ones((2,2), dtype='int8'))
+        self.walk_time = T._shared(np.array(0, dtype='int64'))
+        self.walk_hiddens = [T._shared(np.ones((2,2), dtype=theano.config.floatX)) for layer in self.time_model.layers if has_hidden(layer)]
         
         # correct for dropout
         if self.dropout > 0:
